@@ -1,6 +1,7 @@
 ﻿// 后端服务器主文件
 // 路由配置、中间件设置、API 端点实现
 
+const axios = require('axios');
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -8,6 +9,13 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BAIDU_MAP_API_KEY = process.env.BAIDU_MAP_API_KEY;
+const BAIDU_MAP_REFERER = process.env.BAIDU_MAP_REFERER || 'http://localhost:8000/';
+const QWEATHER_API_KEY = process.env.QWEATHER_API_KEY;
+const QWEATHER_API_HOST = process.env.QWEATHER_API_HOST || 'devapi.qweather.com';
+const CACHE_TTL_WEATHER = Number(process.env.CACHE_TTL_WEATHER || 3600);
+const CACHE_TTL_AQI = Number(process.env.CACHE_TTL_AQI || 1800);
+const CACHE_TTL_SECONDS = Math.min(CACHE_TTL_WEATHER, CACHE_TTL_AQI);
 
 // 中间件
 app.use(cors());
@@ -18,14 +26,210 @@ app.use(express.json());
 const locationStore = {};
 const weatherCache = {};
 
+function normalizeCityName(rawCity) {
+  if (!rawCity || typeof rawCity !== 'string') {
+    return '';
+  }
+  return rawCity.replace(/市$/, '').trim();
+}
+
+function mapAqiLevel(aqi) {
+  const numeric = Number(aqi);
+  if (!Number.isFinite(numeric)) {
+    return '未知';
+  }
+  if (numeric <= 50) return '优';
+  if (numeric <= 100) return '良';
+  if (numeric <= 150) return '轻度污染';
+  if (numeric <= 200) return '中度污染';
+  if (numeric <= 300) return '重度污染';
+  return '严重污染';
+}
+
+function checkRequiredKeys() {
+  if (!BAIDU_MAP_API_KEY) {
+    console.warn('[WARN] BAIDU_MAP_API_KEY is missing. /api/location will fail.');
+  }
+  if (!QWEATHER_API_KEY) {
+    console.warn('[WARN] QWEATHER_API_KEY is missing. /api/weather and /api/aqi will fail.');
+  }
+  if (!QWEATHER_API_HOST) {
+    console.warn('[WARN] QWEATHER_API_HOST is missing. Falling back to devapi.qweather.com.');
+  }
+}
+
+function buildQWeatherUrl(pathname) {
+  return `https://${QWEATHER_API_HOST}${pathname}`;
+}
+
+async function reverseGeocodeByBaidu(lat, lon) {
+  if (!BAIDU_MAP_API_KEY) {
+    throw new Error('BAIDU_MAP_API_KEY is not configured');
+  }
+
+  const response = await axios.get('https://api.map.baidu.com/reverse_geocoding/v3/', {
+    params: {
+      ak: BAIDU_MAP_API_KEY,
+      output: 'json',
+      coordtype: 'wgs84ll',
+      location: `${lat},${lon}`
+    },
+    headers: {
+      Referer: BAIDU_MAP_REFERER,
+      Origin: BAIDU_MAP_REFERER.replace(/\/$/, '')
+    },
+    timeout: 8000
+  });
+
+  if (response.data.status !== 0) {
+    throw new Error(`Baidu reverse geocoding failed: status=${response.data.status}`);
+  }
+
+  const result = response.data.result || {};
+  const component = result.addressComponent || {};
+
+  return {
+    city: component.city || '未知城市',
+    district: component.district || '未知区',
+    province: component.province || '',
+    address: result.formatted_address || ''
+  };
+}
+
+async function getQWeatherLocation(city) {
+  if (!QWEATHER_API_KEY) {
+    throw new Error('QWEATHER_API_KEY is not configured');
+  }
+
+  const response = await axios.get(buildQWeatherUrl('/geo/v2/city/lookup'), {
+    params: {
+      location: city,
+      key: QWEATHER_API_KEY
+    },
+    timeout: 8000
+  });
+
+  const body = response.data || {};
+  if (body.code !== '200' || !Array.isArray(body.location) || body.location.length === 0) {
+    throw new Error(`QWeather city lookup failed: code=${body.code || 'unknown'}`);
+  }
+
+  return body.location[0];
+}
+
+async function fetchQWeatherNow(locationId) {
+  const response = await axios.get(buildQWeatherUrl('/v7/weather/now'), {
+    params: {
+      location: locationId,
+      key: QWEATHER_API_KEY
+    },
+    timeout: 8000
+  });
+
+  const body = response.data || {};
+  if (body.code !== '200' || !body.now) {
+    throw new Error(`QWeather now weather failed: code=${body.code || 'unknown'}`);
+  }
+
+  return body.now;
+}
+
+async function fetchQWeatherAirNow(latitude, longitude) {
+  const response = await axios.get(buildQWeatherUrl(`/airquality/v1/current/${latitude}/${longitude}`), {
+    params: {
+      key: QWEATHER_API_KEY
+    },
+    timeout: 8000
+  });
+
+  const body = response.data || {};
+  if (!Array.isArray(body.indexes) || body.indexes.length === 0) {
+    throw new Error('QWeather air quality failed: empty indexes');
+  }
+
+  return body;
+}
+
+async function getWeatherAndAqiByCity(city) {
+  const normalizedCity = normalizeCityName(city);
+  const cached = weatherCache[normalizedCity];
+  const nowMs = Date.now();
+
+  if (cached && nowMs - cached.cachedAt < CACHE_TTL_SECONDS * 1000) {
+    return cached.data;
+  }
+
+  const location = await getQWeatherLocation(normalizedCity);
+  const [weatherNow, airNow] = await Promise.all([
+    fetchQWeatherNow(location.id),
+    fetchQWeatherAirNow(location.lat, location.lon)
+  ]);
+
+  const primaryIndex = airNow.indexes[0] || {};
+  const pollutantMap = {};
+  for (const pollutant of airNow.pollutants || []) {
+    pollutantMap[pollutant.name || pollutant.code] = Number(pollutant?.concentration?.value);
+  }
+
+  const weather = {
+    city: location.name || city,
+    temp: Number(weatherNow.temp),
+    feels_like: Number(weatherNow.feelsLike),
+    humidity: Number(weatherNow.humidity),
+    weather: weatherNow.text,
+    wind_speed: Number(weatherNow.windSpeed),
+    wind_direction: weatherNow.windDir,
+    aqi: Number(primaryIndex.aqi),
+    aqi_level: primaryIndex.category || mapAqiLevel(primaryIndex.aqi),
+    primary_pollutant: primaryIndex.primaryPollutant?.name || '未知',
+    pollutants: {
+      'PM2.5': pollutantMap['PM 2.5'] ?? pollutantMap['PM2.5'] ?? null,
+      'PM10': pollutantMap['PM 10'] ?? pollutantMap['PM10'] ?? null,
+      'O3': pollutantMap['O3'] ?? null,
+      'NO2': pollutantMap['NO2'] ?? null,
+      'SO2': pollutantMap['SO2'] ?? null,
+      'CO': pollutantMap['CO'] ?? null
+    },
+    update_time: new Date().toISOString(),
+    source: 'qweather'
+  };
+
+  const aqi = {
+    city: location.name || city,
+    aqi: Number(primaryIndex.aqi),
+    level: mapAqiLevel(primaryIndex.aqi),
+    level_cn: primaryIndex.category || mapAqiLevel(primaryIndex.aqi),
+    primary_pollutant: primaryIndex.primaryPollutant?.name || '未知',
+    health_implications: primaryIndex.health?.effect || '暂无健康建议。',
+    suggestions: primaryIndex.health?.advice?.generalPopulation || '暂无建议。',
+    pollutants: {
+      'PM2.5': pollutantMap['PM 2.5'] ?? pollutantMap['PM2.5'] ?? null,
+      'PM10': pollutantMap['PM 10'] ?? pollutantMap['PM10'] ?? null,
+      'O3': pollutantMap['O3'] ?? null,
+      'NO2': pollutantMap['NO2'] ?? null,
+      'SO2': pollutantMap['SO2'] ?? null,
+      'CO': pollutantMap['CO'] ?? null
+    },
+    update_time: new Date().toISOString()
+  };
+
+  const payload = { weather, aqi };
+  weatherCache[normalizedCity] = {
+    cachedAt: nowMs,
+    data: payload
+  };
+
+  return payload;
+}
+
 /**
  * POST /api/location
  * 保存用户定位信息
  */
-app.post('/api/location', (req, res) => {
-  const { lat, lon } = req.body;
+app.post('/api/location', async (req, res) => {
+  const { lat, lon, city, district, province, address } = req.body;
 
-  if (!lat || !lon) {
+  if (lat === undefined || lon === undefined) {
     return res.status(400).json({
       code: 400,
       message: 'Missing latitude or longitude',
@@ -34,41 +238,59 @@ app.post('/api/location', (req, res) => {
     });
   }
 
-  // 模拟地理编码（实际需调用百度地图 API）
-  const mockCityData = {
-    39.9042: { city: '北京市', district: '朝阳区' },
-    30.5728: { city: '杭州市', district: '上城区' },
-    31.2304: { city: '上海市', district: '浦东新区' }
-  };
+  const latitude = Number(lat);
+  const longitude = Number(lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return res.status(400).json({
+      code: 400,
+      message: 'Invalid latitude or longitude',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
 
-  const nearestLat = Object.keys(mockCityData).reduce((prev, curr) => 
-    Math.abs(curr - lat) < Math.abs(prev - lat) ? curr : prev
-  );
+  try {
+    const geo = city
+      ? {
+          city,
+          district: district || '',
+          province: province || '',
+          address: address || ''
+        }
+      : await reverseGeocodeByBaidu(latitude, longitude);
+    const location = {
+      city: geo.city,
+      district: geo.district,
+      province: geo.province,
+      address: geo.address,
+      lat: latitude,
+      lon: longitude,
+      timestamp: new Date().toISOString()
+    };
 
-  const cityInfo = mockCityData[nearestLat] || { city: '未知城市', district: '未知区' };
+    locationStore[`${latitude},${longitude}`] = location;
 
-  const location = {
-    ...cityInfo,
-    lat,
-    lon,
-    timestamp: new Date().toISOString()
-  };
-
-  locationStore[`${lat},${lon}`] = location;
-
-  res.json({
-    code: 0,
-    message: 'success',
-    data: location,
-    timestamp: Date.now()
-  });
+    res.json({
+      code: 0,
+      message: 'success',
+      data: location,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    res.status(502).json({
+      code: 502,
+      message: `Location service error: ${error.message}`,
+      data: null,
+      timestamp: Date.now()
+    });
+  }
 });
 
 /**
  * GET /api/weather
  * 获取天气数据
  */
-app.get('/api/weather', (req, res) => {
+app.get('/api/weather', async (req, res) => {
   const { city } = req.query;
 
   if (!city) {
@@ -80,101 +302,29 @@ app.get('/api/weather', (req, res) => {
     });
   }
 
-  // 模拟天气数据
-  const mockWeatherData = {
-    '北京市': {
-      temp: 25,
-      feels_like: 24,
-      humidity: 65,
-      weather: '晴',
-      wind_speed: 3.2,
-      aqi: 85,
-      aqi_level: '良',
-      primary_pollutant: 'PM2.5',
-      pollutants: {
-        'PM2.5': 35,
-        'PM10': 52,
-        'O3': 120,
-        'NO2': 45,
-        'SO2': 12,
-        'CO': 0.8
-      }
-    },
-    '杭州市': {
-      temp: 28,
-      feels_like: 27,
-      humidity: 70,
-      weather: '多云',
-      wind_speed: 2.1,
-      aqi: 72,
-      aqi_level: '良',
-      primary_pollutant: 'PM10',
-      pollutants: {
-        'PM2.5': 28,
-        'PM10': 42,
-        'O3': 95,
-        'NO2': 35,
-        'SO2': 8,
-        'CO': 0.6
-      }
-    },
-    '上海市': {
-      temp: 26,
-      feels_like: 25,
-      humidity: 68,
-      weather: '晴朗',
-      wind_speed: 2.8,
-      aqi: 78,
-      aqi_level: '良',
-      primary_pollutant: 'PM2.5',
-      pollutants: {
-        'PM2.5': 32,
-        'PM10': 48,
-        'O3': 110,
-        'NO2': 42,
-        'SO2': 10,
-        'CO': 0.7
-      }
-    }
-  };
-
-  const weather = mockWeatherData[city] || {
-    temp: 20,
-    feels_like: 19,
-    humidity: 60,
-    weather: '阴',
-    wind_speed: 2.0,
-    aqi: 100,
-    aqi_level: '轻度污染',
-    primary_pollutant: 'PM2.5',
-    pollutants: {
-      'PM2.5': 55,
-      'PM10': 70,
-      'O3': 140,
-      'NO2': 50,
-      'SO2': 15,
-      'CO': 1.0
-    }
-  };
-
-  res.json({
-    code: 0,
-    message: 'success',
-    data: {
-      city,
-      ...weather,
-      update_time: new Date().toISOString(),
-      source: 'baidu'
-    },
-    timestamp: Date.now()
-  });
+  try {
+    const payload = await getWeatherAndAqiByCity(city);
+    res.json({
+      code: 0,
+      message: 'success',
+      data: payload.weather,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    res.status(502).json({
+      code: 502,
+      message: `Weather service error: ${error.message}`,
+      data: null,
+      timestamp: Date.now()
+    });
+  }
 });
 
 /**
  * GET /api/aqi
  * 获取 AQI 数据
  */
-app.get('/api/aqi', (req, res) => {
+app.get('/api/aqi', async (req, res) => {
   const { city } = req.query;
 
   if (!city) {
@@ -186,53 +336,22 @@ app.get('/api/aqi', (req, res) => {
     });
   }
 
-  // 模拟 AQI 数据
-  const mockAQIData = {
-    '北京市': {
-      aqi: 85,
-      level: '良',
-      level_cn: '良好',
-      primary_pollutant: 'PM2.5',
-      health_implications: '空气质量良好，各类人群都可以正常活动。',
-      suggestions: '继续保持良好的户外活动习惯。'
-    },
-    '杭州市': {
-      aqi: 72,
-      level: '良',
-      level_cn: '良好',
-      primary_pollutant: 'PM10',
-      health_implications: '空气质量良好，适宜户外活动。',
-      suggestions: '可以进行户外运动。'
-    },
-    '上海市': {
-      aqi: 78,
-      level: '良',
-      level_cn: '良好',
-      primary_pollutant: 'PM2.5',
-      health_implications: '空气质量良好，各类人群都可以正常活动。',
-      suggestions: '户外活动无特别限制。'
-    }
-  };
-
-  const aqi = mockAQIData[city] || {
-    aqi: 100,
-    level: '轻度污染',
-    level_cn: '轻度污染',
-    primary_pollutant: 'PM2.5',
-    health_implications: '易感人群应减少户外活动。',
-    suggestions: '建议敏感人群增加户外活动。'
-  };
-
-  res.json({
-    code: 0,
-    message: 'success',
-    data: {
-      city,
-      ...aqi,
-      update_time: new Date().toISOString()
-    },
-    timestamp: Date.now()
-  });
+  try {
+    const payload = await getWeatherAndAqiByCity(city);
+    res.json({
+      code: 0,
+      message: 'success',
+      data: payload.aqi,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    res.status(502).json({
+      code: 502,
+      message: `AQI service error: ${error.message}`,
+      data: null,
+      timestamp: Date.now()
+    });
+  }
 });
 
 /**
@@ -260,6 +379,7 @@ app.use((req, res) => {
 
 // 启动服务器
 app.listen(PORT, () => {
+  checkRequiredKeys();
   console.log(`🚀 Haze Detection Backend Server running on http://localhost:${PORT}`);
   console.log(`📍 API Documentation: http://localhost:${PORT}/api`);
   console.log(`❤️  Health Check: http://localhost:${PORT}/health`);

@@ -33,6 +33,8 @@ npm install
 cp .env.example .env
 
 # 编辑 .env 文件，填入你的 API Key
+# BAIDU_MAP_API_KEY=你的百度地图key
+# QWEATHER_API_KEY=你的和风天气key
 # 编辑后保存
 ```
 
@@ -82,6 +84,13 @@ xdg-open frontend/index.html
 - 天气：`GET http://localhost:3000/api/weather?city=北京市`
 - AQI：`GET http://localhost:3000/api/aqi?city=北京市`
 - 健康检查：`GET http://localhost:3000/health`
+
+### 快速验证（PowerShell）
+```powershell
+Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/location' -ContentType 'application/json' -Body '{"lat":39.9042,"lon":116.4074}'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:3000/api/weather?city=北京市'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:3000/api/aqi?city=北京市'
+```
 
 详见 `docs/API.md`
 

@@ -59,8 +59,11 @@ async function handleLocate() {
     const location = await getUserLocation();
     console.log('📍 获取到位置:', location);
 
+    const geo = await reverseGeocodeWithBaidu(location.lat, location.lon);
+    console.log('🏙️ 解析到城市信息:', geo);
+
     // 发送到后端
-    const locationResult = await fetchLocation(location.lat, location.lon);
+    const locationResult = await fetchLocation(location.lat, location.lon, geo);
 
     if (locationResult.code === 0) {
       currentCity = locationResult.data.city;
