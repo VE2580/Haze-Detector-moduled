@@ -1,0 +1,393 @@
+﻿/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary-color: #00b4d8;
+  --secondary-color: #ff006e;
+  --success-color: #06ffa5;
+  --warning-color: #ffd60a;
+  --danger-color: #ef476f;
+  --dark-bg: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --radius: 12px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: var(--text-primary);
+  padding: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--dark-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.location-section {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.btn-locate {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-locate:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-locate:active {
+  transform: translateY(0);
+}
+
+.city-name {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Main Content */
+.main-content {
+  padding: 30px;
+}
+
+/* 卡片通用样式 */
+section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--primary-color);
+}
+
+section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+/* 天气卡片 */
+.weather-card {
+  border-left-color: #00b4d8;
+}
+
+.weather-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.temp-display {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  padding: 30px;
+}
+
+.temp {
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.weather-desc {
+  font-size: 16px;
+  opacity: 0.9;
+  margin-top: 5px;
+}
+
+.weather-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.weather-details p {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.weather-details span {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* AQI 卡片 */
+.aqi-card {
+  border-left-color: #ff006e;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.05) 0%, rgba(255, 0, 110, 0.02) 100%);
+}
+
+.aqi-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.aqi-score {
+  font-size: 64px;
+  font-weight: 700;
+  color: var(--secondary-color);
+  text-align: center;
+  padding: 30px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(255, 0, 110, 0.15);
+}
+
+.aqi-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aqi-info p {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.aqi-level {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--success-color);
+  color: white;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.aqi-advice {
+  font-style: italic;
+  color: var(--text-primary);
+  padding: 12px;
+  background: rgba(0, 180, 216, 0.1);
+  border-radius: 6px;
+}
+
+/* 污染物卡片 */
+.pollutants-card {
+  border-left-color: #ffd60a;
+}
+
+.pollutants-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.pollutant-item {
+  background: linear-gradient(135deg, #ffd60a 0%, #ffb703 100%);
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(255, 214, 10, 0.2);
+}
+
+.pollutant-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.pollutant-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* 图表区 */
+.charts-section {
+  border-left-color: #06ffa5;
+}
+
+.chart-container {
+  width: 100%;
+  height: 400px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+/* Footer */
+.footer {
+  background: #f0f0f0;
+  color: var(--text-secondary);
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer p {
+  margin: 5px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 15px;
+  }
+
+  section {
+    padding: 15px;
+  }
+
+  .weather-info {
+    grid-template-columns: 1fr;
+  }
+
+  .aqi-display {
+    grid-template-columns: 1fr;
+  }
+
+  .temp-display,
+  .aqi-score {
+    padding: 20px;
+  }
+
+  .temp {
+    font-size: 36px;
+  }
+
+  .aqi-score {
+    font-size: 48px;
+  }
+
+  .pollutants-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .city-name {
+    font-size: 20px;
+  }
+
+  .chart-container {
+    height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+
+  .container {
+    border-radius: 8px;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  section {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  section h2 {
+    font-size: 16px;
+  }
+
+  .weather-details p {
+    font-size: 14px;
+  }
+
+  .pollutants-list {
+    grid-template-columns: 1fr;
+  }
+
+  .pollutant-item {
+    padding: 12px;
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+}
+
+/* 加载动画 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 过渡效果 */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

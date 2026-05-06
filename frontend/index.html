@@ -1,0 +1,105 @@
+﻿<!-- 雾霾探测系统前端页面 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>雾霾探测系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 百度地图 API -->
+  <script src="https://api.map.baidu.com/api?v=1.0&ak=YOUR_BAIDU_MAP_KEY"></script>
+  <!-- ECharts 图表库 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header: 定位和城市信息 -->
+    <header class="header">
+      <div class="location-section">
+        <button id="locateBtn" class="btn-locate">📍 获取定位</button>
+        <span id="cityName" class="city-name">未定位</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- 当前天气卡片 -->
+      <section class="weather-card">
+        <h2>当前天气</h2>
+        <div class="weather-info">
+          <div class="temp-display">
+            <span id="temperature" class="temp">--°C</span>
+            <span id="weatherType" class="weather-desc">--</span>
+          </div>
+          <div class="weather-details">
+            <p>💧 湿度: <span id="humidity">--%</span></p>
+            <p>💨 风速: <span id="windSpeed">-- m/s</span></p>
+            <p>🌤️ 体感温度: <span id="feelsLike">--°C</span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- AQI 卡片 -->
+      <section class="aqi-card">
+        <h2>空气质量指数</h2>
+        <div class="aqi-display">
+          <div class="aqi-score" id="aqiScore">--</div>
+          <div class="aqi-info">
+            <p>等级: <span id="aqiLevel" class="aqi-level">--</span></p>
+            <p>主要污染物: <span id="primaryPollutant">--</span></p>
+            <p class="aqi-advice" id="aqiAdvice">-- </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 污染物浓度 -->
+      <section class="pollutants-card">
+        <h2>污染物浓度</h2>
+        <div class="pollutants-list">
+          <div class="pollutant-item">
+            <span class="pollutant-name">PM2.5</span>
+            <span class="pollutant-value" id="pm25">-- μg/m³</span>
+          </div>
+          <div class="pollutant-item">
+            <span class="pollutant-name">PM10</span>
+            <span class="pollutant-value" id="pm10">-- μg/m³</span>
+          </div>
+          <div class="pollutant-item">
+            <span class="pollutant-name">O3</span>
+            <span class="pollutant-value" id="o3">-- μg/m³</span>
+          </div>
+          <div class="pollutant-item">
+            <span class="pollutant-name">NO2</span>
+            <span class="pollutant-value" id="no2">-- μg/m³</span>
+          </div>
+          <div class="pollutant-item">
+            <span class="pollutant-name">SO2</span>
+            <span class="pollutant-value" id="so2">-- μg/m³</span>
+          </div>
+          <div class="pollutant-item">
+            <span class="pollutant-name">CO</span>
+            <span class="pollutant-value" id="co">-- mg/m³</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 图表展示区 -->
+      <section class="charts-section">
+        <h2>数据趋势</h2>
+        <div id="tempHumidityChart" class="chart-container"></div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>雾霾探测系统 v1.0 | 最后更新: <span id="updateTime">--:--:--</span></p>
+      <p>📱 支持手机、平板和桌面浏览</p>
+    </footer>
+  </div>
+
+  <!-- 脚本 -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
