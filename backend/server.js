@@ -134,6 +134,23 @@ async function fetchQWeatherNow(locationId) {
   return body.now;
 }
 
+async function fetchQWeatherHourly(locationId) {
+  const response = await axios.get(buildQWeatherUrl('/v7/weather/24h'), {
+    params: {
+      location: locationId,
+      key: QWEATHER_API_KEY
+    },
+    timeout: 8000
+  });
+
+  const body = response.data || {};
+  if (body.code !== '200' || !Array.isArray(body.hourly)) {
+    throw new Error(`QWeather hourly forecast failed: code=${body.code || 'unknown'}`);
+  }
+
+  return body.hourly;
+}
+
 async function fetchQWeatherAirNow(latitude, longitude) {
   const response = await axios.get(buildQWeatherUrl(`/airquality/v1/current/${latitude}/${longitude}`), {
     params: {
@@ -220,6 +237,19 @@ async function getWeatherAndAqiByCity(city) {
   };
 
   return payload;
+}
+
+async function getWeatherTrendByCity(city) {
+  const normalizedCity = normalizeCityName(city);
+  const location = await getQWeatherLocation(normalizedCity);
+  const hourly = await fetchQWeatherHourly(location.id);
+
+  return hourly.slice(0, 24).map((item) => ({
+    fxTime: item.fxTime,
+    temp: Number(item.temp),
+    humidity: Number(item.humidity),
+    text: item.text
+  }));
 }
 
 /**
@@ -348,6 +378,43 @@ app.get('/api/aqi', async (req, res) => {
     res.status(502).json({
       code: 502,
       message: `AQI service error: ${error.message}`,
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+});
+
+/**
+ * GET /api/trend
+ * 获取逐小时趋势数据
+ */
+app.get('/api/trend', async (req, res) => {
+  const { city } = req.query;
+
+  if (!city) {
+    return res.status(400).json({
+      code: 400,
+      message: 'Missing city parameter',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+
+  try {
+    const trend = await getWeatherTrendByCity(city);
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        city,
+        trend
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    res.status(502).json({
+      code: 502,
+      message: `Trend service error: ${error.message}`,
       data: null,
       timestamp: Date.now()
     });

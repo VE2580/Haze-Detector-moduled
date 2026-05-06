@@ -26,6 +26,7 @@ const elements = {
 // 全局状态
 let currentCity = '北京市';
 let chart = null;
+let currentTrendData = [];
 
 /**
  * 初始化
@@ -93,11 +94,16 @@ async function loadWeatherData(city) {
   try {
     console.log(`📊 加载城市 ${city} 的数据...`);
 
-    const data = await fetchWeatherAndAQI(city);
+    const [data, trendResult] = await Promise.all([
+      fetchWeatherAndAQI(city),
+      fetchTrend(city)
+    ]);
+
     updateWeatherDisplay(data.weather);
     updateAQIDisplay(data.aqi);
     updatePollutantsDisplay(data.weather.pollutants);
-    updateChart(data.weather);
+    currentTrendData = trendResult.data.trend || [];
+    updateChart(currentTrendData);
     updateTimestamp();
 
     console.log('✅ 数据更新完成');
@@ -166,20 +172,18 @@ function initChart() {
 /**
  * 更新图表数据
  */
-function updateChart(weatherData) {
+function updateChart(trendData) {
   if (!chart) {
     initChart();
   }
 
-  // 生成模拟的历史数据
-  const historyData = generateMockHistoryData();
-  const dates = historyData.map(item => item.date);
-  const temps = historyData.map(item => item.temp);
-  const humidities = historyData.map(item => item.humidity);
+  const dates = trendData.map(item => formatTrendTimeLabel(item.fxTime));
+  const temps = trendData.map(item => item.temp);
+  const humidities = trendData.map(item => item.humidity);
 
   const option = {
     title: {
-      text: '温度 & 湿度趋势图',
+      text: '逐小时温度 & 湿度趋势图',
       left: 'center'
     },
     tooltip: {

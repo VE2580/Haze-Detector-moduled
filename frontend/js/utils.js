@@ -61,20 +61,14 @@ function getAQIAdvice(aqi) {
 }
 
 /**
- * 生成模拟的历史数据
+ * 格式化趋势图的时间标签
  */
-function generateMockHistoryData() {
-  const data = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('zh-CN').slice(5),
-      temp: Math.round(Math.random() * 15 + 18),
-      humidity: Math.round(Math.random() * 30 + 50)
-    });
-  }
-  return data;
+function formatTrendTimeLabel(fxTime) {
+  const date = new Date(fxTime);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  return `${month}/${day} ${hour}:00`;
 }
 
 /**

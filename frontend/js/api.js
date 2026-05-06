@@ -1,6 +1,6 @@
 ﻿// API 接口调用模块
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://127.0.0.1:3000/api';
 
 /**
  * 获取定位
@@ -68,6 +68,44 @@ async function fetchAQI(city) {
     return result;
   } catch (error) {
     console.error('Error fetching AQI:', error);
+    throw error;
+  }
+}
+
+/**
+ * 获取逐小时趋势
+ */
+async function fetchTrend(city) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/trend?city=${encodeURIComponent(city)}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error fetching trend:', error);
+    throw error;
+  }
+}
+
+/**
+ * 获取趋势数据
+ */
+async function fetchTrend(city) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/trend?city=${encodeURIComponent(city)}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error fetching trend:', error);
     throw error;
   }
 }
