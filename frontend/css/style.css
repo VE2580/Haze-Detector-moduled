@@ -57,6 +57,13 @@ body {
   align-items: center;
 }
 
+.location-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .btn-locate {
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -76,6 +83,34 @@ body {
 
 .btn-locate:active {
   transform: translateY(0);
+}
+
+.city-select {
+  min-width: 140px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+}
+
+.city-select:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.city-select:focus {
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
+.city-select option {
+  color: #333333;
 }
 
 .city-name {
@@ -311,12 +346,27 @@ section h2 {
     text-align: center;
   }
 
+  .location-section {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .location-actions {
+    justify-content: center;
+  }
+
   .city-name {
     font-size: 20px;
   }
 
+  .charts-section {
+    padding-bottom: 10px;
+  }
+
   .chart-container {
-    height: 300px;
+    height: 340px;
+    padding: 10px;
   }
 }
 
@@ -355,7 +405,8 @@ section h2 {
   }
 
   .chart-container {
-    height: 250px;
+    height: 320px;
+    padding: 8px;
   }
 }
 

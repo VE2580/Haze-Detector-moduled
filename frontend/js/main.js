@@ -3,6 +3,7 @@
 // DOM 元素缓存
 const elements = {
   locateBtn: document.getElementById('locateBtn'),
+  citySelect: document.getElementById('citySelect'),
   cityName: document.getElementById('cityName'),
   temperature: document.getElementById('temperature'),
   weatherType: document.getElementById('weatherType'),
@@ -28,6 +29,26 @@ let currentCity = '北京市';
 let chart = null;
 let currentTrendData = [];
 
+const MANUAL_CITIES = [
+  '北京市',
+  '上海市',
+  '广州市',
+  '深圳市',
+  '杭州市',
+  '成都市',
+  '武汉市',
+  '西安市',
+  '重庆市',
+  '南京市'
+];
+
+/**
+ * 归一化城市名，便于和下拉框选项匹配
+ */
+function normalizeCityName(city) {
+  return (city || '').replace(/市$/, '').trim();
+}
+
 /**
  * 初始化
  */
@@ -36,6 +57,9 @@ function init() {
 
   // 绑定事件
   elements.locateBtn.addEventListener('click', handleLocate);
+  elements.citySelect.addEventListener('change', handleCitySelectChange);
+
+  syncCityDisplay(currentCity);
 
   // 初始加载
   loadWeatherData(currentCity);
@@ -60,7 +84,10 @@ async function handleLocate() {
     const location = await getUserLocation();
     console.log('📍 获取到位置:', location);
 
-    const geo = await reverseGeocodeWithBaidu(location.lat, location.lon);
+    const cityName = (location.city || '').replace(/市$/, '').trim();
+    const geo = cityName
+      ? { city: cityName, district: '', province: '', address: '' }
+      : await reverseGeocodeWithBaidu(location.lat, location.lon);
     console.log('🏙️ 解析到城市信息:', geo);
 
     // 发送到后端
@@ -68,19 +95,19 @@ async function handleLocate() {
 
     if (locationResult.code === 0) {
       currentCity = locationResult.data.city;
-      elements.cityName.textContent = currentCity;
-      elements.cityName.classList.add('fade-in');
+      syncCityDisplay(currentCity);
 
       showNotification(`定位成功: ${currentCity}`, 'success');
 
       // 加载新城市的天气数据
-      await loadWeatherData(currentCity);
+      await loadWeatherData(currentCity, { forceRefresh: true });
     } else {
       showNotification('定位失败', 'error');
     }
   } catch (error) {
     console.error('定位错误:', error);
-    showNotification('定位出错', 'error');
+    showNotification(error.message || '定位出错，请手动选择城市', 'error');
+    elements.citySelect.focus();
   } finally {
     showLoading(elements.locateBtn, false);
     elements.locateBtn.textContent = '📍 获取定位';
@@ -88,15 +115,29 @@ async function handleLocate() {
 }
 
 /**
+ * 处理手动选择城市
+ */
+async function handleCitySelectChange(event) {
+  const selectedCity = event.target.value;
+  if (!selectedCity) {
+    return;
+  }
+
+  currentCity = selectedCity;
+  syncCityDisplay(currentCity);
+  await loadWeatherData(currentCity, { forceRefresh: true });
+}
+
+/**
  * 加载天气数据
  */
-async function loadWeatherData(city) {
+async function loadWeatherData(city, options = {}) {
   try {
     console.log(`📊 加载城市 ${city} 的数据...`);
 
     const [data, trendResult] = await Promise.all([
-      fetchWeatherAndAQI(city),
-      fetchTrend(city)
+      fetchWeatherAndAQI(city, options),
+      fetchTrend(city, options)
     ]);
 
     updateWeatherDisplay(data.weather);
@@ -110,6 +151,23 @@ async function loadWeatherData(city) {
   } catch (error) {
     console.error('加载数据错误:', error);
     showNotification('数据加载失败，请刷新页面', 'error');
+  }
+}
+
+/**
+ * 同步城市名称展示和下拉框状态
+ */
+function syncCityDisplay(city) {
+  elements.cityName.textContent = city;
+  elements.cityName.classList.add('fade-in');
+
+  const normalizedCity = normalizeCityName(city);
+  const matchedOption = Array.from(elements.citySelect.options).find((option) => {
+    return normalizeCityName(option.value) === normalizedCity;
+  });
+
+  if (matchedOption) {
+    elements.citySelect.value = matchedOption.value;
   }
 }
 
@@ -184,7 +242,12 @@ function updateChart(trendData) {
   const option = {
     title: {
       text: '逐小时温度 & 湿度趋势图',
-      left: 'center'
+      left: 'center',
+      top: 10,
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 600
+      }
     },
     tooltip: {
       trigger: 'axis',
@@ -197,13 +260,14 @@ function updateChart(trendData) {
     },
     legend: {
       data: ['温度', '湿度'],
-      top: 30
+      top: 42,
+      left: 'center'
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
-      top: '15%',
+      top: '22%',
       containLabel: true
     },
     xAxis: {

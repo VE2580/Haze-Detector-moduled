@@ -1,6 +1,6 @@
 ﻿// API 接口调用模块
 
-const API_BASE_URL = 'http://127.0.0.1:3000/api';
+const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3000/api`;
 
 /**
  * 获取定位
@@ -37,9 +37,14 @@ async function fetchLocation(lat, lon, geo = {}) {
 /**
  * 获取天气
  */
-async function fetchWeather(city) {
+async function fetchWeather(city, options = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/weather?city=${encodeURIComponent(city)}`);
+    const params = new URLSearchParams({ city });
+    if (options.forceRefresh) {
+      params.set('forceRefresh', '1');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/weather?${params.toString()}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -56,9 +61,14 @@ async function fetchWeather(city) {
 /**
  * 获取 AQI
  */
-async function fetchAQI(city) {
+async function fetchAQI(city, options = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/aqi?city=${encodeURIComponent(city)}`);
+    const params = new URLSearchParams({ city });
+    if (options.forceRefresh) {
+      params.set('forceRefresh', '1');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/aqi?${params.toString()}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -75,9 +85,14 @@ async function fetchAQI(city) {
 /**
  * 获取逐小时趋势
  */
-async function fetchTrend(city) {
+async function fetchTrend(city, options = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/trend?city=${encodeURIComponent(city)}`);
+    const params = new URLSearchParams({ city });
+    if (options.forceRefresh) {
+      params.set('forceRefresh', '1');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/trend?${params.toString()}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -94,55 +109,62 @@ async function fetchTrend(city) {
 /**
  * 获取趋势数据
  */
-async function fetchTrend(city) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/trend?city=${encodeURIComponent(city)}`);
+/**
+ * 等待百度地图 JS API 加载完成
+ */
+function waitForBMapReady(timeoutMs = 5000, intervalMs = 100) {
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const timer = setInterval(() => {
+      if (window.BMap && window.BMap.Geolocation) {
+        clearInterval(timer);
+        resolve();
+        return;
+      }
 
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error('Error fetching trend:', error);
-    throw error;
-  }
+      if (Date.now() - startedAt >= timeoutMs) {
+        clearInterval(timer);
+        reject(new Error('百度地图加载超时，请手动选择城市'));
+      }
+    }, intervalMs);
+  });
 }
 
 /**
- * 获取定位（用户地理位置）
+ * 使用百度地图 JS SDK 获取定位
  */
-function getUserLocation() {
+async function getUserLocation() {
+  await waitForBMapReady();
+
   return new Promise((resolve, reject) => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.warn('Geolocation error:', error);
-          // 返回默认位置（北京）
-          resolve({
-            lat: 39.9042,
-            lon: 116.4074
-          });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
+    try {
+      const geolocation = new window.BMap.Geolocation();
+      geolocation.getCurrentPosition((position) => {
+        if (geolocation.getStatus() !== window.BMAP_STATUS_SUCCESS) {
+          reject(new Error('百度地图定位失败，请手动选择城市'));
+          return;
         }
-      );
-    } else {
-      // 不支持地理定位，返回默认位置
-      resolve({
-        lat: 39.9042,
-        lon: 116.4074
+
+        const latitude = position?.point?.lat;
+        const longitude = position?.point?.lng;
+        const city = position?.address?.city || position?.addressComponent?.city || '';
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          reject(new Error('百度地图定位结果无效，请手动选择城市'));
+          return;
+        }
+
+        resolve({
+          lat: latitude,
+          lon: longitude,
+          city
+        });
+      }, {
+        enableHighAccuracy: true
       });
+    } catch (error) {
+      reject(error);
     }
   });
 }
@@ -150,11 +172,11 @@ function getUserLocation() {
 /**
  * 同时获取天气和 AQI
  */
-async function fetchWeatherAndAQI(city) {
+async function fetchWeatherAndAQI(city, options = {}) {
   try {
     const [weatherResult, aqiResult] = await Promise.all([
-      fetchWeather(city),
-      fetchAQI(city)
+      fetchWeather(city, options),
+      fetchAQI(city, options)
     ]);
 
     return {

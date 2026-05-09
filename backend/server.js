@@ -167,12 +167,13 @@ async function fetchQWeatherAirNow(latitude, longitude) {
   return body;
 }
 
-async function getWeatherAndAqiByCity(city) {
+async function getWeatherAndAqiByCity(city, options = {}) {
+  const { bypassCache = false } = options;
   const normalizedCity = normalizeCityName(city);
   const cached = weatherCache[normalizedCity];
   const nowMs = Date.now();
 
-  if (cached && nowMs - cached.cachedAt < CACHE_TTL_SECONDS * 1000) {
+  if (!bypassCache && cached && nowMs - cached.cachedAt < CACHE_TTL_SECONDS * 1000) {
     return cached.data;
   }
 
@@ -321,7 +322,7 @@ app.post('/api/location', async (req, res) => {
  * 获取天气数据
  */
 app.get('/api/weather', async (req, res) => {
-  const { city } = req.query;
+  const { city, forceRefresh } = req.query;
 
   if (!city) {
     return res.status(400).json({
@@ -333,7 +334,9 @@ app.get('/api/weather', async (req, res) => {
   }
 
   try {
-    const payload = await getWeatherAndAqiByCity(city);
+    const payload = await getWeatherAndAqiByCity(city, {
+      bypassCache: forceRefresh === '1' || forceRefresh === 'true'
+    });
     res.json({
       code: 0,
       message: 'success',
@@ -355,7 +358,7 @@ app.get('/api/weather', async (req, res) => {
  * 获取 AQI 数据
  */
 app.get('/api/aqi', async (req, res) => {
-  const { city } = req.query;
+  const { city, forceRefresh } = req.query;
 
   if (!city) {
     return res.status(400).json({
@@ -367,7 +370,9 @@ app.get('/api/aqi', async (req, res) => {
   }
 
   try {
-    const payload = await getWeatherAndAqiByCity(city);
+    const payload = await getWeatherAndAqiByCity(city, {
+      bypassCache: forceRefresh === '1' || forceRefresh === 'true'
+    });
     res.json({
       code: 0,
       message: 'success',

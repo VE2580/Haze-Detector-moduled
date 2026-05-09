@@ -5,9 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>雾霾探测系统</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=3">
   <!-- 百度地图 API -->
-  <script src="https://api.map.baidu.com/api?v=3.0&ak=YRGv7TpdifL21CQQQPxDpYvho4pBQiD6"></script>
+  <script src="https://api.map.baidu.com/api?v=3.0&ak=7BXuxLCXt9FH7CHZAAIonpGWrQs6DfNR"></script>
   <!-- ECharts 图表库 -->
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
 </head>
@@ -16,8 +16,22 @@
     <!-- Header: 定位和城市信息 -->
     <header class="header">
       <div class="location-section">
-        <button id="locateBtn" class="btn-locate">📍 获取定位</button>
-        <span id="cityName" class="city-name">未定位</span>
+        <div class="location-actions">
+          <button id="locateBtn" class="btn-locate">📍 获取定位</button>
+          <select id="citySelect" class="city-select" aria-label="手动选择城市">
+            <option value="北京市">北京市</option>
+            <option value="上海市">上海市</option>
+            <option value="广州市">广州市</option>
+            <option value="深圳市">深圳市</option>
+            <option value="杭州市">杭州市</option>
+            <option value="成都市">成都市</option>
+            <option value="武汉市">武汉市</option>
+            <option value="西安市">西安市</option>
+            <option value="重庆市">重庆市</option>
+            <option value="南京市">南京市</option>
+          </select>
+        </div>
+        <span id="cityName" class="city-name">北京市</span>
       </div>
     </header>
 
@@ -98,8 +112,8 @@
   </div>
 
   <!-- 脚本 -->
-  <script src="js/utils.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/utils.js?v=3"></script>
+  <script src="js/api.js?v=3"></script>
+  <script src="js/main.js?v=3"></script>
 </body>
 </html>
