@@ -1,7 +1,11 @@
 ﻿# Dependencies
 node_modules/
-package-lock.json
 yarn.lock
+
+# Local environments
+.venv/
+backend/node_modules/
+frontend/node_modules/
 
 # Environment variables
 .env
@@ -27,6 +31,12 @@ yarn-debug.log*
 dist/
 build/
 *.tgz
+
+# Generated / extracted documents
+unpacked_docx/
+.uploads/
+~$*.docx
+docx_content.txt
 
 # Temp
 temp/

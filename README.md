@@ -16,7 +16,7 @@
 - 空气质量指数可视化
 
 ### 3. 数据获取
-- 通过百度/和风天气 API 获取实时数据
+- 通过和风天气 API 获取实时数据
 - 服务器端数据缓存和管理
 - 支持多城市查询
 
@@ -28,22 +28,26 @@
 ## 项目结构
 
 ```
-haze-detection-system/
-├── backend/              # 后端 API 服务
-│   ├── server.js         # 主服务文件
-│   ├── package.json      # 依赖配置
-│   ├── routes/           # 路由模块
-│   ├── controllers/       # 业务逻辑
-│   └── config/           # 配置文件
-├── frontend/             # 前端页面
-│   ├── index.html        # 主页面
-│   ├── css/              # 样式文件
-│   ├── js/               # 脚本文件
-│   └── assets/           # 图片资源
-├── docs/                 # 项目文档
-│   ├── DESIGN.md         # 设计文档
-│   └── API.md            # API 接口文档
-└── README.md             # 项目说明
+Haze2/
+├── backend/               # 后端 API 服务
+│   ├── server.js          # 主服务文件
+│   ├── package.json       # 依赖与脚本
+│   ├── package-lock.json  # 依赖锁定文件
+│   ├── .env.example       # 环境变量模板
+│   └── .env               # 本地环境变量（不提交）
+├── frontend/              # 前端页面
+│   ├── index.html         # 主页面
+│   ├── css/
+│   │   └── style.css      # 样式文件
+│   └── js/
+│       ├── api.js         # API 调用与定位封装
+│       ├── main.js        # 页面主逻辑
+│       └── utils.js       # 工具函数
+├── docs/                  # 项目文档
+│   ├── DESIGN.md          # 设计文档
+│   └── API.md             # API 接口文档
+├── QUICKSTART.md          # 快速启动说明
+└── README.md              # 项目说明
 ```
 
 ## 技术栈
@@ -51,8 +55,8 @@ haze-detection-system/
 - **后端**：Node.js + Express
 - **前端**：HTML5 + CSS3 + JavaScript
 - **地图**：百度地图 API
-- **天气数据**：百度/和风天气 API
-- **图表**：ECharts / Chart.js
+- **天气数据**：和风天气 API（QWeather）
+- **图表**：ECharts
 - **版本控制**：Git
 
 ## 快速开始
@@ -74,17 +78,22 @@ cd frontend
 
 需要配置以下 API Key：
 - 百度地图 API Key
-- 百度/和风天气 API Key
+- 和风天气 API Key
 
-详见 `backend/config/config.example.js`
+详见 `backend/.env.example`
 
 ## 实现进度
 
-- [ ] 项目初始化
-- [ ] 后端 API 实现
-- [ ] 前端页面设计
-- [ ] 数据集成
-- [ ] 测试与部署
+- [x] 项目初始化
+- [x] 后端 API 实现
+- [x] 前端页面设计
+- [x] 数据集成
+- [x] 核心功能验证
+- [ ] 部署
+
+## 当前状态
+
+项目核心功能已完成并可本地运行：定位、天气、AQI、逐小时趋势图、城市手动切换，以及真实百度/和风数据接入均已实现。当前未完成项主要是正式部署、性能压测和更系统的自动化测试。
 
 ## 贡献者
 
