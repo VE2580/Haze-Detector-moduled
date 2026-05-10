@@ -57,25 +57,10 @@ npm run dev
 
 ```bash
 cd frontend
-python -m http.server 8000
-# 或 npm install -g http-server
-# http-server
+npx http-server . -a 0.0.0.0 -p 8000
 ```
 
 然后打开 `http://localhost:8000`
-
-### 方式 2：直接打开文件
-
-```bash
-# Windows
-start frontend/index.html
-
-# macOS
-open frontend/index.html
-
-# Linux
-xdg-open frontend/index.html
-```
 
 ## API 端点（服务器运行时）
 
@@ -173,17 +158,4 @@ cd frontend
 
 MIT License
 
----
 
-**准备好开始了吗？** 🚀
-
-```bash
-# 一键启动脚本（Windows）
-cd backend && npm install && npm start
-```
-
-```bash
-# 一键启动脚本（macOS/Linux）
-cd backend && npm install && npm start &
-cd ../frontend && python -m http.server 8000
-```
