@@ -37,6 +37,7 @@ unpacked_docx/
 .uploads/
 ~$*.docx
 docx_content.txt
+*.docx
 
 # Temp
 temp/
